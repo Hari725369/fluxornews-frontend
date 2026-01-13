@@ -1,0 +1,209 @@
+﻿'use client';
+
+import { useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
+import { Article } from '@/types';
+import ReadingProgressBar from '@/components/article/ReadingProgressBar';
+import SocialShare from '@/components/article/SocialShare';
+import AudioReader from '@/components/article/AudioReader';
+import HighlightedContent from '@/components/article/HighlightedContent';
+import { useSiteConfig } from '@/contexts/SiteConfigContext';
+
+interface ArticleClientPageProps {
+    article: Article;
+    relatedArticles: Article[];
+}
+
+export default function ArticleClientPage({ article, relatedArticles }: ArticleClientPageProps) {
+    const [activeIndex, setActiveIndex] = useState(-1);
+    const [activeCharIndex, setActiveCharIndex] = useState(0);
+
+    // Get site config for feature toggles
+    const { config } = useSiteConfig();
+
+    // Get feature toggles with defaults
+    const enableTags = config?.features?.enableTags ?? true;
+    const enableSocialShare = config?.features?.enableSocialShare ?? true;
+    const showDateTime = config?.features?.showDateTime ?? true;
+    const showCountryName = config?.features?.showCountryName ?? false;
+    const showAuthorName = config?.features?.showAuthorName ?? false;
+
+    const getSafeImageUrl = (url: string) => {
+        if (!url || url.startsWith('file://')) {
+            return 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&q=80';
+        }
+        return url;
+    };
+
+    const safeImage = getSafeImageUrl(article.featuredImage);
+
+    // Calculate reading time
+    const wordsPerMinute = 200;
+    const textLength = article.content.replace(/<[^>]*>/g, '').split(/\s+/).length;
+    const readingTime = Math.max(1, Math.ceil(textLength / wordsPerMinute));
+
+    return (
+        <div className="min-h-screen flex flex-col">
+            <ReadingProgressBar />
+            <Header />
+
+            <main className="flex-1 py-4 md:py-8">
+                <article className="container mx-auto px-4 max-w-[1200px]">
+                    {/* Article Header - Focused Width */}
+                    <header className="max-w-article mx-auto mb-8 text-left">
+                        {/* Category Label */}
+                        <div className="flex items-center gap-3 mb-4">
+                            <Link
+                                href={`/?category=${(article.category && typeof article.category === 'object') ? article.category._id : (article.category || 'news')}`}
+                                className="inline-block text-primary dark:text-primary text-xs font-semibold uppercase tracking-wider hover:underline font-sans"
+                            >
+                                {(article.category && typeof article.category === 'object') ? article.category.name : 'News'}
+                            </Link>
+                            {showCountryName && article.country && (
+                                <>
+                                    <span className="text-gray-300 dark:text-gray-700">|</span>
+                                    <span className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-widest">
+                                        {article.country}
+                                    </span>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Title - Editorial H1 */}
+                        <h1 className="text-[20px] font-bold leading-tight mb-2">
+                            {article.title}
+                        </h1>
+
+                        {/* Meta: Date & Time */}
+                        {showDateTime && (
+                            <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 font-medium mb-6">
+                                {/* Publish Date */}
+                                <div className="flex items-center gap-2">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                    <span>
+                                        {new Date(article.publishedAt || article.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Asia/Kolkata' })}
+                                        {' • '}
+                                        {new Date(article.publishedAt || article.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' })} IST
+                                        {' � '}
+                                        {new Date(article.publishedAt || article.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' })} IST
+                                        {/* Reading Time */}
+                                        {config?.features?.enableReadingTime && (
+                                            <>
+                                                {' | '}
+                                                {readingTime}:00min
+                                            </>
+                                        )}
+                                        {/* Author Name */}
+                                        {showAuthorName && article.author && (
+                                            <>
+                                                {' | '}
+                                                {typeof article.author === 'object' ? article.author.name : article.author}
+                                            </>
+                                        )}
+                                </div>
+                            </div>
+                        )}
+                    </header>
+
+                    {/* Featured Image & Audio Assistant */}
+                    {(article.featuredImage || article.content) && (
+                        <div className="max-w-article mx-auto relative mb-12">
+                            <AudioReader
+                                content={article.content}
+                                onActiveIndexChange={setActiveIndex}
+                                onWordBoundary={setActiveCharIndex}
+                            />
+
+                            {article.featuredImage && (
+                                <div className="relative w-full aspect-[21/9] rounded-xl overflow-hidden shadow-xl ring-1 ring-gray-200 dark:ring-gray-800">
+                                    <Image
+                                        src={safeImage}
+                                        alt={article.imageAlt || article.title}
+                                        fill
+                                        className="object-cover"
+                                        priority
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Article Content - 680px Width */}
+                    <div className="max-w-article mx-auto">
+                        <HighlightedContent
+                            htmlContent={article.content}
+                            activeIndex={activeIndex}
+                            activeCharIndex={activeCharIndex}
+                        />
+
+                        {/* Tags - Conditional based on config */}
+                        {enableTags && article.tags && article.tags.length > 0 && (
+                            <div className="mt-12 pt-8 border-t border-neutral-200">
+                                <h3 className="text-sm font-semibold uppercase tracking-wider text-neutral-500 mb-4 font-sans">
+                                    Tags
+                                </h3>
+                                <div className="flex flex-wrap gap-2">
+                                    {article.tags.map((tag: string) => (
+                                        <Link
+                                            key={tag}
+                                            href={`/tag/${tag.toLowerCase().replace(/\s+/g, '-')}`}
+                                            className="px-3 py-1 bg-primary/10 hover:bg-primary/20 dark:bg-neutral-100 dark:hover:bg-neutral-200 border border-primary dark:border-neutral-700 rounded-md text-sm text-primary dark:text-neutral-700 transition-colors font-sans"
+                                        >
+                                            #{tag}
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+
+                        {/* Share Section */}
+                        {enableSocialShare && (
+                            <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-800">
+                                <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-4 font-sans">
+                                    Share this article
+                                </h3>
+                                <SocialShare title={article.title} url={`/article/${article.slug}`} />
+                            </div>
+                        )}
+                    </div>
+                </article>
+                {relatedArticles.length > 0 && (
+                    <section className="mt-16 py-12 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
+                        <div className="container mx-auto px-4 max-w-[1200px]">
+                            <h2 className="text-h2 font-bold uppercase text-primary dark:text-[var(--text-primary)] mb-8 font-sans tracking-wider">
+                                More from {(article.category && typeof article.category === 'object') ? article.category.name : 'this category'}
+                            </h2>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                {relatedArticles.map((relatedArticle: Article) => (
+                                    <Link
+                                        key={relatedArticle._id}
+                                        href={`/article/${relatedArticle.slug}`}
+                                        className="group"
+                                    >
+                                        <div className="relative aspect-[16/9] rounded-lg overflow-hidden mb-4">
+                                            <Image
+                                                src={getSafeImageUrl(relatedArticle.featuredImage)}
+                                                alt={relatedArticle.imageAlt || relatedArticle.title}
+                                                fill
+                                                className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                            />
+                                        </div>
+                                        <h3 className="font-bold text-lg leading-tight group-hover:text-primary dark:group-hover:text-primary transition-colors line-clamp-2">
+                                            {relatedArticle.title}
+                                        </h3>
+                                    </Link>
+                                ))}
+                            </div>
+                        </div>
+                    </section>
+                )}
+            </main>
+
+            <Footer />
+        </div>
+    );
+}
