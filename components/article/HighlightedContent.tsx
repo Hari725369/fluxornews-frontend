@@ -177,12 +177,12 @@ export default function HighlightedContent({ htmlContent, activeIndex, activeCha
 
     return (
         <div ref={containerRef} className={`editorial-body editorial-typography prose max-w-none dark:prose-invert leading-loose text-[16px] 
-            [&_p]:text-[16px] [&_p]:text-gray-800 [&_p]:dark:text-gray-100 
-            [&_h1]:text-gray-900 [&_h1]:dark:text-white 
-            [&_h2]:text-gray-900 [&_h2]:dark:text-white 
-            [&_h3]:text-gray-900 [&_h3]:dark:text-white 
-            [&_li]:text-[16px] [&_li]:text-gray-800 [&_li]:dark:text-gray-100 
-            [&_strong]:text-gray-900 [&_strong]:dark:text-white
+            [&_p]:text-[16px] [&_p]:text-gray-800 [&_p]:dark:!text-gray-100 
+            [&_h1]:text-gray-900 [&_h1]:dark:!text-white 
+            [&_h2]:text-gray-900 [&_h2]:dark:!text-white 
+            [&_h3]:text-gray-900 [&_h3]:dark:!text-white 
+            [&_li]:text-[16px] [&_li]:text-gray-800 [&_li]:dark:!text-gray-100 
+            [&_strong]:text-gray-900 [&_strong]:dark:!text-white
             ${className}`}>
             {renderedContent}
         </div>
