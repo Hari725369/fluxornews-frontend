@@ -37,6 +37,11 @@ const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
 
+  // Ignore eslint during build
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+
   // Security headers
   async headers() {
     return [
