@@ -1,14 +1,97 @@
 import { ApiResponse, Article, Category, Tag, LoginCredentials, AuthResponse, Comment } from '@/types';
 
-const API_URL = 'http://127.0.0.1:5000/api';
-// const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+// const API_URL = 'http://127.0.0.1:5000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 console.log('Currently using API_URL:', API_URL);
 
-// Helper function to get auth token from localStorage
+// ============================================
+// ISOLATED TOKEN STORAGE SYSTEM
+// ============================================
+
+/**
+ * Admin Token Storage (Namespace: "admin_*")
+ * Used for: Admin panel authentication, article management, user management
+ */
+const AdminAuth = {
+    getToken: (): string | null => {
+        if (typeof window === 'undefined') return null;
+        return localStorage.getItem('admin_token');
+    },
+
+    setToken: (token: string) => {
+        if (typeof window === 'undefined') return;
+        // Store in BOTH new and legacy keys for compatibility
+        localStorage.setItem('admin_token', token);
+        localStorage.setItem('token', token);
+        localStorage.setItem('adminToken', token);
+    },
+
+    getUser: () => {
+        if (typeof window === 'undefined') return null;
+        const user = localStorage.getItem('admin_user');
+        return user ? JSON.parse(user) : null;
+    },
+
+    setUser: (user: any) => {
+        if (typeof window === 'undefined') return;
+        // Store in BOTH new and legacy keys for compatibility
+        localStorage.setItem('admin_user', JSON.stringify(user));
+        localStorage.setItem('adminUser', JSON.stringify(user));
+    },
+
+    clear: () => {
+        if (typeof window === 'undefined') return;
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('admin_user');
+        // Also clear legacy keys for backward compatibility
+        localStorage.removeItem('token');
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminUser');
+    }
+};
+
+/**
+ * Reader Token Storage (Namespace: "reader_*")
+ * Used for: Public user authentication, comments, bookmarks, Google sign-in
+ */
+const ReaderAuth = {
+    getToken: (): string | null => {
+        if (typeof window === 'undefined') return null;
+        return localStorage.getItem('reader_token');
+    },
+
+    setToken: (token: string) => {
+        if (typeof window === 'undefined') return;
+        localStorage.setItem('reader_token', token);
+    },
+
+    getUser: () => {
+        if (typeof window === 'undefined') return null;
+        const user = localStorage.getItem('reader_user');
+        return user ? JSON.parse(user) : null;
+    },
+
+    setUser: (user: any) => {
+        if (typeof window === 'undefined') return;
+        localStorage.setItem('reader_user', JSON.stringify(user));
+    },
+
+    clear: () => {
+        if (typeof window === 'undefined') return;
+        localStorage.removeItem('reader_token');
+        localStorage.removeItem('reader_user');
+        // Also clear legacy keys for backward compatibility
+        localStorage.removeItem('readerToken');
+        localStorage.removeItem('readerUser');
+    }
+};
+
+// Helper function to get auth token (checks both systems for backward compatibility)
 const getToken = (): string | null => {
     if (typeof window !== 'undefined') {
-        // Check for reader token first (for public/reader auth), then admin token
-        return localStorage.getItem('readerToken') || localStorage.getItem('token');
+        // Priority: new namespaced tokens, then legacy tokens
+        return AdminAuth.getToken() || ReaderAuth.getToken() ||
+            localStorage.getItem('token') || localStorage.getItem('readerToken');
     }
     return null;
 };
@@ -41,8 +124,7 @@ export async function fetchAPI<T>(
         if (response.status === 401 && data.message === 'Reader not found') {
             if (typeof window !== 'undefined') {
                 console.warn('Reader not found, clearing local session...');
-                localStorage.removeItem('readerToken');
-                localStorage.removeItem('readerUser');
+                ReaderAuth.clear();
                 window.location.href = '/'; // Redirect to home/refresh to clear state
                 return data; // Stop propagation or return empty
             }
@@ -53,30 +135,51 @@ export async function fetchAPI<T>(
     return data;
 }
 
-// Auth API
+// Auth API (Admin Authentication)
 export const authAPI = {
     login: async (credentials: LoginCredentials): Promise<ApiResponse<AuthResponse>> => {
-        const response = await fetchAPI<AuthResponse>('/auth/login', {
-            method: 'POST',
-            body: JSON.stringify(credentials),
-        });
+        console.log('[authAPI] 🔐 Admin login initiated');
+        console.log('[authAPI] API URL:', API_URL);
+        console.log('[authAPI] Email:', credentials.email);
 
-        // Store token and user data
-        if (response.data?.token) {
-            localStorage.setItem('token', response.data.token);
-            localStorage.setItem('adminToken', response.data.token);
-        }
-        if (response.data?.user) {
-            localStorage.setItem('adminUser', JSON.stringify(response.data.user));
-        }
+        try {
+            const response = await fetchAPI<AuthResponse>('/auth/login', {
+                method: 'POST',
+                body: JSON.stringify(credentials),
+            });
 
-        return response;
+            console.log('[authAPI] 📥 Response received:', {
+                success: response.success,
+                hasToken: !!response.data?.token,
+                hasUser: !!response.data?.user
+            });
+
+            // Store in ADMIN namespace
+            if (response.success && response.data?.token) {
+                const token = response.data.token;
+                console.log('[authAPI] 💾 Storing admin token in isolated namespace...');
+
+                AdminAuth.setToken(token);
+
+                if (response.data.user) {
+                    AdminAuth.setUser(response.data.user);
+                    console.log('[authAPI] ✅ Admin credentials stored:', response.data.user.email);
+                }
+            } else {
+                console.warn('[authAPI] ⚠️ Response missing token or unsuccessful:', response);
+            }
+
+            return response;
+        } catch (error: any) {
+            console.error('[authAPI] ❌ Login error:', error.message);
+            console.error('[authAPI] Error details:', error);
+            throw error;
+        }
     },
 
     logout: () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('adminToken');
-        localStorage.removeItem('adminUser');
+        console.log('[authAPI] 🚪 Logging out admin...');
+        AdminAuth.clear();
     },
 
     verifyToken: async (): Promise<ApiResponse<any>> => {
@@ -86,7 +189,17 @@ export const authAPI = {
     getCurrentUser: async (): Promise<ApiResponse<any>> => {
         return fetchAPI('/auth/me');
     },
+
+    devLogin: async (): Promise<ApiResponse<AuthResponse>> => {
+        return fetchAPI('/auth/dev-login', {
+            method: 'POST',
+        });
+    },
 };
+
+// Export the auth helpers for use in other parts of the app
+export { AdminAuth, ReaderAuth };
+
 
 // Articles API
 export const articlesAPI = {

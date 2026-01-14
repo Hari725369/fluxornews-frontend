@@ -382,7 +382,7 @@ export default function UserManagementPage() {
                             <tr>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">User</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">Role</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">Enabled</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">Joined</th>
                                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">Direct Publish</th>
                                 <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">Actions</th>
@@ -403,9 +403,32 @@ export default function UserManagementPage() {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium capitalize ${getStatusBadgeColor(user.status)}`}>
-                                            {user.status}
-                                        </span>
+                                        {user.role !== 'superadmin' ? (
+                                            <div className="flex items-center justify-center">
+                                                <button
+                                                    onClick={() => user.status === 'active' ? handleSuspend(user._id) : handleActivate(user._id)}
+                                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${user.status === 'active'
+                                                            ? 'bg-emerald-600'
+                                                            : 'bg-gray-300 dark:bg-gray-700'
+                                                        }`}
+                                                    title={user.status === 'active' ? 'Click to disable user' : 'Click to enable user'}
+                                                >
+                                                    <span
+                                                        className={`inline-block h-4 w-4 transform  rounded-full bg-white transition-transform ${user.status === 'active' ? 'translate-x-6' : 'translate-x-1'
+                                                            }`}
+                                                    />
+                                                </button>
+                                                <span className={`ml-3 text-xs font-medium ${user.status === 'active' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                                                    {user.status === 'active' ? 'Active' : 'Disabled'}
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center justify-center">
+                                                <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                                                    Always Active
+                                                </span>
+                                            </div>
+                                        )}
                                     </td>
                                     <td className="px-6 py-4 text-sm text-gray-500 dark:text-[var(--text-secondary)]">
                                         {new Date(user.createdAt).toLocaleDateString()}
@@ -429,44 +452,31 @@ export default function UserManagementPage() {
                                         )}
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        <div className="flex items-center justify-end gap-2">
+                                        <div className="flex items-center justify-end gap-3">
                                             <button
                                                 onClick={() => handleViewStats(user._id)}
-                                                className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                                                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-medium transition-colors"
+                                                title="View Statistics"
                                             >
                                                 📊 Stats
                                             </button>
                                             <button
                                                 onClick={() => openEditModal(user)}
-                                                className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                                                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-medium transition-colors"
+                                                title="Edit User"
                                             >
-                                                Edit
+                                                ✏️ Edit
                                             </button>
-                                            {/* Only show Suspend/Activate and Delete for non-superadmin users */}
                                             {user.role !== 'superadmin' && (
-                                                <>
-                                                    {user.status === 'active' ? (
-                                                        <button
-                                                            onClick={() => handleSuspend(user._id)}
-                                                            className="text-amber-600 hover:text-amber-700 text-sm font-medium"
-                                                        >
-                                                            Suspend
-                                                        </button>
-                                                    ) : (
-                                                        <button
-                                                            onClick={() => handleActivate(user._id)}
-                                                            className="text-emerald-600 hover:text-emerald-700 text-sm font-medium"
-                                                        >
-                                                            Activate
-                                                        </button>
-                                                    )}
-                                                    <button
-                                                        onClick={() => handleDelete(user._id)}
-                                                        className="text-red-600 hover:text-red-700 text-sm font-medium"
-                                                    >
-                                                        Delete
-                                                    </button>
-                                                </>
+                                                <button
+                                                    onClick={() => handleDelete(user._id)}
+                                                    className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors p-1"
+                                                    title="Delete User"
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
                                             )}
                                         </div>
                                     </td>

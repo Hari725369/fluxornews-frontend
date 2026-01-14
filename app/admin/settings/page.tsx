@@ -30,6 +30,7 @@ export default function SettingsPage() {
     const [faviconUploading, setFaviconUploading] = useState(false);
 
     // Features
+    const [showLatestNews, setShowLatestNews] = useState(true);
     const [enableEmailSubscribe, setEnableEmailSubscribe] = useState(true);
     const [enableTags, setEnableTags] = useState(true);
     const [enableComments, setEnableComments] = useState(true);
@@ -79,6 +80,7 @@ export default function SettingsPage() {
                     setFavicon(data.branding.favicon || '');
                 }
                 if (data.features) {
+                    setShowLatestNews(data.features.showLatestNews ?? true);
                     setEnableEmailSubscribe(data.features.enableEmailSubscribe ?? true);
                     setEnableTags(data.features.enableTags ?? true);
                     setEnableComments(data.features.enableComments ?? true);
@@ -150,7 +152,7 @@ export default function SettingsPage() {
                 homeLayout: { columns: columnCount },
                 branding: { logo, favicon },
                 features: {
-                    enableEmailSubscribe, enableTags, enableComments, enableDarkMode,
+                    showLatestNews, enableEmailSubscribe, enableTags, enableComments, enableDarkMode,
                     enableReadingTime, enableRelatedArticles, enableSocialShare,
                     enableSearch, showAuthorName, showCountryName, showDateTime,
                     showSignInButton, enableSaveForLater, showPostIntro
@@ -174,6 +176,7 @@ export default function SettingsPage() {
     }
 
     const featureItems = [
+        { label: 'Latest News Section', state: showLatestNews, setState: setShowLatestNews, desc: 'Display Latest News on homepage', icon: <FaBookOpen /> },
         { label: 'Publish Date', state: showDateTime, setState: setShowDateTime, desc: 'Show publication timestamp', icon: <FaCalendarDays /> },
         { label: 'Reading Time', state: enableReadingTime, setState: setEnableReadingTime, desc: 'Show estimated reading time', icon: <FaRegClock /> },
         { label: 'Author Name', state: showAuthorName, setState: setShowAuthorName, desc: 'Display author credits', icon: <FaUserPen /> },

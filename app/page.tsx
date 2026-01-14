@@ -172,14 +172,16 @@ export default async function HomePage(props: PageProps) {
             )}
 
             {/* 3. Latest News (Excluding Pinned) */}
-            <div>
-              <div className="flex items-center mb-8 border-b border-gray-200 dark:border-gray-800 pb-4">
-                <h2 className="text-2xl font-black uppercase text-gray-900 dark:text-white tracking-tight">
-                  Latest News
-                </h2>
+            {(configData.features?.showLatestNews !== false) && (
+              <div>
+                <div className="flex items-center mb-8 border-b border-gray-200 dark:border-gray-800 pb-4">
+                  <h2 className="text-2xl font-black uppercase text-gray-900 dark:text-white tracking-tight">
+                    Latest News
+                  </h2>
+                </div>
+                <LatestNewsGrid articles={remainingArticles.slice(0, 8)} />
               </div>
-              <LatestNewsGrid articles={remainingArticles.slice(0, 8)} />
-            </div>
+            )}
 
             {/* 4. Dynamic Sections */}
             {sections.length > 0 ? (
