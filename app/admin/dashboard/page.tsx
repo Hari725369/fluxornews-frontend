@@ -38,9 +38,14 @@ export default function AdminDashboard() {
             const response = await authAPI.getCurrentUser();
             if (response.success && response.data) {
                 setUser(response.data);
+            } else {
+                console.warn('[AdminDashboard] Auth check failed:', response);
+                throw new Error('Auth failed');
             }
         } catch (error) {
-            router.push('/admin/login');
+            console.error('[AdminDashboard] Verifying auth failed:', error);
+            authAPI.logout(); // Clear local storage
+            window.location.href = '/admin/login'; // Force hard redirect
         }
     };
 
