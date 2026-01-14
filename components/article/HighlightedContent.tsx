@@ -10,9 +10,10 @@ interface HighlightedContentProps {
     activeIndex: number;
     activeCharIndex?: number;
     readAlsoArticles?: Article[]; // New prop
+    className?: string;
 }
 
-export default function HighlightedContent({ htmlContent, activeIndex, activeCharIndex = 0, readAlsoArticles = [] }: HighlightedContentProps) {
+export default function HighlightedContent({ htmlContent, activeIndex, activeCharIndex = 0, readAlsoArticles = [], className = '' }: HighlightedContentProps) {
     const [renderedContent, setRenderedContent] = useState<React.ReactNode[]>([]);
     const containerRef = React.useRef<HTMLDivElement>(null);
 
@@ -175,7 +176,7 @@ export default function HighlightedContent({ htmlContent, activeIndex, activeCha
     }, [activeIndex]);
 
     return (
-        <div ref={containerRef} className="editorial-body editorial-typography prose max-w-none dark:prose-invert leading-loose text-[16px] [&_p]:text-[16px] [&_li]:text-[16px]">
+        <div ref={containerRef} className={`editorial-body editorial-typography prose max-w-none dark:prose-invert leading-loose text-[16px] [&_p]:text-[16px] [&_li]:text-[16px] ${className}`}>
             {renderedContent}
         </div>
     );
