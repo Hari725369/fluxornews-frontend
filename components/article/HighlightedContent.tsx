@@ -141,7 +141,7 @@ export default function HighlightedContent({ htmlContent, activeIndex, activeCha
                         data-sentence-index={globalIndex}
                         className={`transition-all duration-300 rounded-sm inline-block px-0.5 ${isPast
                             ? 'text-gray-400 dark:text-gray-500'
-                            : ''
+                            : 'text-gray-900 dark:text-gray-100'
                             }`}
                     >
                         {s}
@@ -150,7 +150,7 @@ export default function HighlightedContent({ htmlContent, activeIndex, activeCha
             });
 
             const Tag = tag as any;
-            return <Tag key={pIdx} className="mb-4 leading-relaxed">{sentenceNodes}</Tag>;
+            return <Tag key={pIdx} className="mb-4 leading-relaxed text-gray-900 dark:text-gray-100">{sentenceNodes}</Tag>;
         });
 
         // Fallback or empty content
