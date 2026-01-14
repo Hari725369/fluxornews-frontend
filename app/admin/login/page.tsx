@@ -35,6 +35,11 @@ export default function AdminLogin() {
                 console.log('[LoginPage] ✅ Login successful!');
                 setSuccess('Login successful! Redirecting...');
 
+                // Ensure cookie is set for middleware
+                if (response.data?.token) {
+                    document.cookie = `adminToken=${response.data.token}; path=/; max-age=86400; SameSite=Lax; Secure`;
+                }
+
                 // Verify token was stored
                 const storedToken = localStorage.getItem('token');
                 console.log('[LoginPage] Token in localStorage:', storedToken ? '✅ Present' : '❌ Missing');
@@ -43,7 +48,8 @@ export default function AdminLogin() {
                 await new Promise(resolve => setTimeout(resolve, 500));
 
                 console.log('[LoginPage] 🔄 Navigating to dashboard...');
-                router.push('/admin/dashboard');
+                // Force hard redirect to ensure middleware sees the cookie
+                window.location.href = '/admin/dashboard';
             } else {
                 console.log('[LoginPage] ❌ Login failed:', response.message);
                 setError(response.message || 'Login failed');
