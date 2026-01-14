@@ -138,6 +138,7 @@ export interface SiteFeatures {
     showDateTime?: boolean;
     showSignInButton?: boolean;
     enableSaveForLater?: boolean;
+    showLatestNews?: boolean;
 }
 
 export interface SiteConfig {

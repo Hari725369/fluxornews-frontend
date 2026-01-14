@@ -6,7 +6,7 @@ import Footer from '@/components/layout/Footer';
 import FeaturedCarousel from '@/components/article/FeaturedCarousel';
 import LatestNewsGrid from '@/components/home/LatestNewsGrid';
 import { articlesAPI, configAPI, homepageAPI, categoriesAPI } from '@/lib/api';
-import { Article, HomepageConfig } from '@/types';
+import { Article, HomepageConfig, SiteConfig } from '@/types';
 
 // Page Props Interface for Server Component
 interface PageProps {
@@ -24,7 +24,7 @@ async function getHomepageData(category?: string) {
     ]);
 
     return {
-      configData: configRes.data,
+      configData: configRes.data as SiteConfig,
       homepageConfig: homepageRes.data as HomepageConfig | undefined,
       articles: articlesRes.data || [],
       categories: categoriesRes.data || []
