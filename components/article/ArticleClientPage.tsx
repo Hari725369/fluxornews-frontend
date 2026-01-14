@@ -257,6 +257,15 @@ export default function ArticleClientPage({ article, relatedArticles, trendingAr
                     <div className="max-w-article mx-auto">
                         <HighlightedContent
                             htmlContent={article.content}
+                            className="prose prose-lg max-w-none text-gray-800 dark:text-gray-100
+                                prose-headings:font-serif prose-headings:font-bold prose-headings:text-gray-900 dark:prose-headings:text-white
+                                prose-p:leading-relaxed prose-p:mb-6 prose-p:text-gray-800 dark:prose-p:text-gray-200
+                                prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+                                prose-img:rounded-xl prose-img:shadow-md
+                                prose-strong:text-gray-900 dark:prose-strong:text-white
+                                prose-ul:list-disc prose-ul:pl-5 prose-ul:mb-6
+                                prose-ol:list-decimal prose-ol:pl-5 prose-ol:mb-6
+                                prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:bg-gray-50 dark:prose-blockquote:bg-white/5 prose-blockquote:py-2 prose-blockquote:pr-4 prose-blockquote:rounded-r-lg"
                             activeIndex={activeIndex}
                             activeCharIndex={activeCharIndex}
                             readAlsoArticles={relatedArticles}
