@@ -90,6 +90,28 @@ export default function RichTextEditor({ value, onChange, label, placeholder, cl
         </button>
     );
 
+    const [showListOptions, setShowListOptions] = useState(false);
+    const listOptionsRef = useRef<HTMLDivElement>(null);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (listOptionsRef.current && !listOptionsRef.current.contains(event.target as Node)) {
+                setShowListOptions(false);
+            }
+        };
+
+        if (showListOptions) {
+            document.addEventListener('mousedown', handleClickOutside);
+        } else {
+            document.removeEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showListOptions]);
+
     return (
         <div className={`${className} ${isFullScreen ? 'fixed inset-0 z-[100] bg-white dark:bg-[#0F0F0F] p-4 h-screen w-screen' : ''}`}>
             {label && !isFullScreen && <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">{label}</label>}
@@ -127,12 +149,46 @@ export default function RichTextEditor({ value, onChange, label, placeholder, cl
 
                     <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
 
-                    <ToolbarButton cmd="insertUnorderedList" icon={
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16M9 6v12m-3-6h.01" /></svg>
-                    } title="Bullet List" /> {/* Simple icon placeholder, refined below */}
-                    <ToolbarButton cmd="insertOrderedList" icon={
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h12M7 13h12M7 19h12M3 7h2M3 13h2M3 19h2" /></svg>
-                    } title="Numbered List" />
+                    {/* Advanced List Dropdown */}
+                    <div className="relative" ref={listOptionsRef}>
+                        <button
+                            type="button"
+                            onClick={() => setShowListOptions(!showListOptions)}
+                            className={`p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-1 ${showListOptions ? 'bg-gray-200 dark:bg-gray-600' : ''}`}
+                            title="List Options"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16M9 6v12m-3-6h.01" /></svg>
+                            <svg className={`w-3 h-3 text-gray-400 transition-transform ${showListOptions ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+
+                        {showListOptions && (
+                            <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 rounded-md shadow-xl z-50 p-1">
+                                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider px-2 py-1">Bullets</div>
+                                <button type="button" onClick={() => { execCommand('insertUnorderedList'); setShowListOptions(false); }} className="w-full text-left px-2 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                                    <span className="w-4 text-center">•</span> Disc (Default)
+                                </button>
+                                <button type="button" onClick={() => { execCommand('insertUnorderedList'); setTimeout(() => { const s = window.getSelection(); if (s?.anchorNode) { const ul = s.anchorNode.parentElement?.closest('ul'); if (ul) ul.style.listStyleType = 'circle'; handleInput(); } }, 10); setShowListOptions(false); }} className="w-full text-left px-2 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                                    <span className="w-4 text-center">○</span> Circle
+                                </button>
+                                <button type="button" onClick={() => { execCommand('insertUnorderedList'); setTimeout(() => { const s = window.getSelection(); if (s?.anchorNode) { const ul = s.anchorNode.parentElement?.closest('ul'); if (ul) ul.style.listStyleType = 'square'; handleInput(); } }, 10); setShowListOptions(false); }} className="w-full text-left px-2 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                                    <span className="w-4 text-center">■</span> Square
+                                </button>
+
+                                <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
+
+                                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider px-2 py-1">Numbering</div>
+                                <button type="button" onClick={() => { execCommand('insertOrderedList'); setShowListOptions(false); }} className="w-full text-left px-2 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                                    <span className="w-4 text-center">1.</span> Decimal
+                                </button>
+                                <button type="button" onClick={() => { execCommand('insertOrderedList'); setTimeout(() => { const s = window.getSelection(); if (s?.anchorNode) { const ol = s.anchorNode.parentElement?.closest('ol'); if (ol) ol.style.listStyleType = 'lower-roman'; handleInput(); } }, 10); setShowListOptions(false); }} className="w-full text-left px-2 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                                    <span className="w-4 text-center">i.</span> Roman (Lower)
+                                </button>
+                                <button type="button" onClick={() => { execCommand('insertOrderedList'); setTimeout(() => { const s = window.getSelection(); if (s?.anchorNode) { const ol = s.anchorNode.parentElement?.closest('ol'); if (ol) ol.style.listStyleType = 'lower-alpha'; handleInput(); } }, 10); setShowListOptions(false); }} className="w-full text-left px-2 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                                    <span className="w-4 text-center">a.</span> Alpha (Lower)
+                                </button>
+                            </div>
+                        )}
+                    </div>
 
                     <ToolbarButton
                         title="Blockquote"
@@ -247,7 +303,10 @@ export default function RichTextEditor({ value, onChange, label, placeholder, cl
                     onInput={handleInput}
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => setIsFocused(false)}
-                    className={`p-4 overflow-y-auto outline-none text-gray-900 dark:text-white prose dark:prose-invert max-w-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:cursor-text text-lg leading-relaxed ${isFullScreen ? 'flex-1 h-full' : 'min-h-[500px] max-h-[800px]'
+                    className={`p-4 overflow-y-auto outline-none text-gray-900 dark:text-white prose dark:prose-invert max-w-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:cursor-text text-lg leading-relaxed
+                        [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 
+                        [&_li]:marker:text-gray-500 [&_li]:marker:dark:text-gray-400
+                        ${isFullScreen ? 'flex-1 h-full' : 'min-h-[500px] max-h-[800px]'
                         }`}
                     data-placeholder={placeholder}
                 />

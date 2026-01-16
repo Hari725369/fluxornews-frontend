@@ -183,6 +183,7 @@ export default function HighlightedContent({ htmlContent, activeIndex, activeCha
             [&_h3]:text-gray-900 [&_h3]:dark:!text-white 
             [&_li]:text-[16px] [&_li]:text-gray-800 [&_li]:dark:!text-gray-100 
             [&_strong]:text-gray-900 [&_strong]:dark:!text-white
+            [&_*]:dark:!text-gray-100/90
             ${className}`}>
             {renderedContent}
         </div>
