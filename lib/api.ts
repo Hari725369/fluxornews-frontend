@@ -117,7 +117,27 @@ export async function fetchAPI<T>(
         headers,
     });
 
-    const data = await response.json();
+    // Check for 429 specifically first
+    if (response.status === 429) {
+        throw new Error('Too many requests. Please try again later.');
+    }
+
+    let data;
+    const contentType = response.headers.get('content-type');
+
+    if (contentType && contentType.includes('application/json')) {
+        try {
+            data = await response.json();
+        } catch (error) {
+            console.error('JSON Parse Error:', error);
+            throw new Error('Invalid JSON response from server');
+        }
+    } else {
+        // Handle non-JSON responses (e.g., plain text errors)
+        const text = await response.text();
+        // Construct a pseudo-ApiResponse for error handling logic below
+        data = { success: false, message: text || `Request failed with status ${response.status}` };
+    }
 
     if (!response.ok) {
         // Handle case where local token exists but user doesn't exist in DB (e.g. DB reset)

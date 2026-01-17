@@ -230,7 +230,7 @@ export default function ArticleClientPage({ article, relatedArticles, trendingAr
                             />
 
                             {article.featuredImage && (
-                                <div className="relative w-full aspect-[21/9] rounded-xl overflow-hidden shadow-xl ring-1 ring-gray-200 dark:ring-gray-800">
+                                <div className="relative w-full aspect-[21/9] rounded-xl overflow-hidden ring-1 ring-gray-200 dark:ring-gray-800">
                                     <Image
                                         src={safeImage}
                                         alt={article.imageAlt || article.title}
@@ -257,7 +257,7 @@ export default function ArticleClientPage({ article, relatedArticles, trendingAr
                     <div className="max-w-article mx-auto">
                         <HighlightedContent
                             htmlContent={article.content}
-                            className="prose prose-lg max-w-none text-gray-800 dark:text-gray-100
+                            className="prose max-w-none text-gray-800 dark:text-gray-100
                                 prose-headings:font-serif prose-headings:font-bold prose-headings:text-gray-900 dark:prose-headings:text-white
                                 prose-p:leading-relaxed prose-p:mb-6 prose-p:text-gray-800 dark:prose-p:text-gray-200
                                 prose-a:text-primary prose-a:no-underline hover:prose-a:underline

@@ -324,7 +324,7 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
                                 name="title"
                                 value={formData.title}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 text-2xl font-bold border border-gray-300 dark:border-neutral-200 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-transparent transition text-black dark:text-white bg-white dark:bg-[#1A1A1A] placeholder:text-gray-300 dark:placeholder:text-gray-600"
+                                className="w-full px-4 py-3 text-2xl font-bold font-serif border border-gray-300 dark:border-neutral-200 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-transparent transition text-black dark:text-white bg-white dark:bg-[#1A1A1A] placeholder:text-gray-300 dark:placeholder:text-gray-600"
                                 placeholder="Article title here..."
                                 required
                             />

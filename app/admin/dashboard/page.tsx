@@ -42,10 +42,16 @@ export default function AdminDashboard() {
                 console.warn('[AdminDashboard] Auth check failed:', response);
                 throw new Error('Auth failed');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('[AdminDashboard] Verifying auth failed:', error);
-            authAPI.logout(); // Clear local storage
-            window.location.href = '/admin/login'; // Force hard redirect
+            // authAPI.logout(); // Do not verify logout immediately to allow debugging
+            // window.location.href = '/admin/login'; 
+
+            // Show error state instead of redirecting
+            setLoading(false);
+            setUser(null);
+            // We can optionally show an error UI here
+            alert(`Session check failed: ${error.message}. Please check console for details.`);
         }
     };
 

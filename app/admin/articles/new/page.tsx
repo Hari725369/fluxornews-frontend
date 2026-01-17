@@ -257,7 +257,7 @@ export default function NewArticlePage() {
                                 name="title"
                                 value={formData.title}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 text-lg font-bold border border-gray-300 dark:border-neutral-200 rounded-md bg-white dark:bg-[#0F0F0F] text-black dark:text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-primary"
+                                className="w-full px-4 py-3 text-lg font-bold font-serif border border-gray-300 dark:border-neutral-200 rounded-md bg-white dark:bg-[#0F0F0F] text-black dark:text-[var(--text-primary)] placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-primary"
                                 placeholder="Article title here..."
                                 required
                             />

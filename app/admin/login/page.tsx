@@ -37,7 +37,10 @@ export default function AdminLogin() {
 
                 // Ensure cookie is set for middleware
                 if (response.data?.token) {
-                    document.cookie = `adminToken=${response.data.token}; path=/; max-age=86400; SameSite=Lax; Secure`;
+                    const isSecure = window.location.protocol === 'https:';
+                    document.cookie = `adminToken=${response.data.token}; path=/; max-age=86400; SameSite=Lax; ${isSecure ? 'Secure' : ''}`;
+                    // Backup cookie for legacy logic if needed
+                    document.cookie = `token=${response.data.token}; path=/; max-age=86400; SameSite=Lax; ${isSecure ? 'Secure' : ''}`;
                 }
 
                 // Verify token was stored
@@ -86,11 +89,11 @@ export default function AdminLogin() {
                     )}
 
                     <Input
-                        label="Email"
+                        label="User ID"
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="admin@fluxornews.com"
+                        placeholder="User ID"
                         required
                     />
 
@@ -99,7 +102,7 @@ export default function AdminLogin() {
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter your password"
+                        placeholder="Password"
                         required
                     />
 

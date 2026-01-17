@@ -193,18 +193,6 @@ export default function ContactUsEditor() {
                         </div>
                     </div>
                 </div>
-
-                <div className="flex items-center justify-between mt-6">
-                    <Link href="/admin/dashboard" className="inline-flex items-center gap-2 px-6 py-3 bg-[#1a1a1a] hover:bg-[#2a2a2a] text-white rounded-lg transition-colors">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>
-                        Back to Dashboard
-                    </Link>
-                    <button onClick={handleSave} disabled={saving} className="px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium transition-colors disabled:opacity-50">
-                        {saving ? 'Saving...' : 'Save Changes'}
-                    </button>
-                </div>
             </div>
         </div>
     );

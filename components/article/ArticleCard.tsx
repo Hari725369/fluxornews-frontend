@@ -60,9 +60,11 @@ export default function ArticleCard({ article, variant = 'default' }: ArticleCar
                         {article.title}
                     </h2>
                     {/* Summary */}
-                    <p className="text-gray-200 text-lg mb-4 line-clamp-2 leading-relaxed drop-shadow-md">
-                        {truncateText(article.content.replace(/\u003c[^\u003e]*\u003e/g, ''), 150)}
-                    </p>
+                    {showPostIntro && (
+                        <p className="text-gray-200 text-lg mb-4 line-clamp-2 leading-relaxed drop-shadow-md">
+                            {article.intro || truncateText(article.content.replace(/\u003c[^\u003e]*\u003e/g, ''), 150)}
+                        </p>
+                    )}
                     {/* Metadata */}
                     {showDateTime && (
                         <div className="flex items-center gap-4 text-sm text-gray-300 font-sans">
@@ -120,7 +122,7 @@ export default function ArticleCard({ article, variant = 'default' }: ArticleCar
     // Default variant - Editorial card
     return (
         <div className="h-full flex flex-col group">
-            <Link href={`/article/${article.slug}`} className="block relative aspect-[3/2] overflow-hidden rounded-lg mb-4">
+            <Link href={`/article/${article.slug}`} className="block relative aspect-[3/2] overflow-hidden rounded-lg mb-2">
                 <Image
                     src={safeImage}
                     alt={article.imageAlt || article.title}
@@ -161,7 +163,7 @@ export default function ArticleCard({ article, variant = 'default' }: ArticleCar
                 {/* Excerpt / Intro */}
                 {showPostIntro && (
                     <p className="text-gray-600 dark:text-gray-400 text-sm mb-2 line-clamp-2">
-                        {truncateText(article.content.replace(/\u003c[^\u003e]*\u003e/g, ''), 150)}
+                        {article.intro || truncateText(article.content.replace(/\u003c[^\u003e]*\u003e/g, ''), 150)}
                     </p>
                 )}
 

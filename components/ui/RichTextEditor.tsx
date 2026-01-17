@@ -15,6 +15,8 @@ export default function RichTextEditor({ value, onChange, label, placeholder, cl
     const editorRef = useRef<HTMLDivElement>(null);
     const [isFocused, setIsFocused] = useState(false);
     const [isFullScreen, setIsFullScreen] = useState(false);
+    const [showTableModal, setShowTableModal] = useState(false);
+    const [tableDims, setTableDims] = useState({ rows: 3, cols: 3 });
 
     const toggleFullScreen = () => {
         setIsFullScreen(!isFullScreen);
@@ -111,6 +113,87 @@ export default function RichTextEditor({ value, onChange, label, placeholder, cl
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [showListOptions]);
+
+    const [savedRange, setSavedRange] = useState<Range | null>(null);
+    const [activeTable, setActiveTable] = useState<HTMLTableElement | null>(null);
+    const [tableMenuPos, setTableMenuPos] = useState({ top: 0, left: 0 });
+
+    // Save selection when opening modal
+    const openTableModal = () => {
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+            setSavedRange(selection.getRangeAt(0));
+        }
+        setShowTableModal(true);
+    };
+
+    // Handle clicks to detect table selection for editing
+    const handleEditorClick = (e: React.MouseEvent | React.KeyboardEvent) => {
+        const target = (e as any).target as HTMLElement;
+        const table = target.closest('table');
+        if (table) {
+            setActiveTable(table as HTMLTableElement);
+            // Position menu above the table
+            const rect = table.getBoundingClientRect();
+            const editorRect = editorRef.current?.getBoundingClientRect();
+            if (editorRect) {
+                // Calculate center top position
+                const tableCenterX = (rect.left - editorRect.left) + (rect.width / 2);
+
+                setTableMenuPos({
+                    top: rect.top - editorRect.top - 40, // 40px above table
+                    left: tableCenterX // Center relative to table
+                });
+            }
+        } else {
+            setActiveTable(null);
+        }
+    };
+
+    // Table manipulation functions
+    const addRow = () => {
+        if (!activeTable) return;
+        const cols = activeTable.rows[0].cells.length;
+        const row = activeTable.insertRow();
+        for (let i = 0; i < cols; i++) {
+            const cell = row.insertCell();
+            cell.className = "border border-gray-300 dark:border-gray-600 p-2 min-w-[50px]";
+            cell.innerHTML = "New";
+        }
+        handleInput();
+    };
+
+    const addCol = () => {
+        if (!activeTable) return;
+        for (let i = 0; i < activeTable.rows.length; i++) {
+            const cell = activeTable.rows[i].insertCell();
+            cell.className = "border border-gray-300 dark:border-gray-600 p-2 min-w-[50px]";
+            cell.innerHTML = "New";
+        }
+        handleInput();
+    };
+
+    const deleteRow = () => {
+        if (!activeTable || activeTable.rows.length <= 1) return;
+        activeTable.deleteRow(activeTable.rows.length - 1);
+        handleInput();
+    };
+
+    const deleteCol = () => {
+        if (!activeTable || activeTable.rows[0].cells.length <= 1) return;
+        const lastColIdx = activeTable.rows[0].cells.length - 1;
+        for (let i = 0; i < activeTable.rows.length; i++) {
+            activeTable.rows[i].deleteCell(lastColIdx);
+        }
+        handleInput();
+    };
+
+    const deleteTable = () => {
+        if (!activeTable) return;
+        activeTable.remove();
+        setActiveTable(null);
+        handleInput();
+    };
 
     return (
         <div className={`${className} ${isFullScreen ? 'fixed inset-0 z-[100] bg-white dark:bg-[#0F0F0F] p-4 h-screen w-screen' : ''}`}>
@@ -236,6 +319,89 @@ export default function RichTextEditor({ value, onChange, label, placeholder, cl
                         }}
                     />
 
+                    <ToolbarButton
+                        title="Insert Table"
+                        icon={
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M3 14h18m-9-4v8m-7-4h14M4 6h16a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2z" /></svg>
+                        }
+                        onClick={openTableModal}
+                    />
+
+                    {/* Table Modal */}
+                    {showTableModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl w-80">
+                                <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">Insert Table</h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rows</label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max="20"
+                                            value={tableDims.rows}
+                                            onChange={(e) => setTableDims(prev => ({ ...prev, rows: parseInt(e.target.value) || 1 }))}
+                                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 bg-transparent dark:text-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Columns</label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max="10"
+                                            value={tableDims.cols}
+                                            onChange={(e) => setTableDims(prev => ({ ...prev, cols: parseInt(e.target.value) || 1 }))}
+                                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 bg-transparent dark:text-white"
+                                        />
+                                    </div>
+                                    <div className="flex justify-end gap-2 pt-2">
+                                        <button
+                                            onClick={() => setShowTableModal(false)}
+                                            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                const { rows, cols } = tableDims;
+                                                if (rows > 0 && cols > 0) {
+                                                    // Restore selection!
+                                                    if (savedRange) {
+                                                        const selection = window.getSelection();
+                                                        if (selection) {
+                                                            selection.removeAllRanges();
+                                                            selection.addRange(savedRange);
+                                                        }
+                                                    } else {
+                                                        editorRef.current?.focus();
+                                                    }
+
+                                                    // User requested: No scroll bar, row height adjusts to content (words wrap) + Corner Radius
+                                                    let html = '<div class="rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 my-4"><table class="w-full border-collapse table-fixed"><tbody>';
+                                                    for (let i = 0; i < rows; i++) {
+                                                        html += '<tr>';
+                                                        for (let j = 0; j < cols; j++) {
+                                                            // Removed min-w and added break-words
+                                                            html += '<td class="border border-gray-300 dark:border-gray-600 p-2 break-words text-wrap align-top">Cell</td>';
+                                                        }
+                                                        html += '</tr>';
+                                                    }
+                                                    html += '</tbody></table></div><p><br/></p>';
+                                                    execCommand('insertHTML', html);
+                                                    setShowTableModal(false);
+                                                }
+                                            }}
+                                            className="px-4 py-2 text-sm bg-primary text-white rounded hover:bg-primary-600"
+                                        >
+                                            Insert
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
 
                     <ToolbarButton cmd="undo" icon={
@@ -296,20 +462,68 @@ export default function RichTextEditor({ value, onChange, label, placeholder, cl
                     </div>
                 </div>
 
-                {/* Editor Area */}
-                <div
-                    ref={editorRef}
-                    contentEditable
-                    onInput={handleInput}
-                    onFocus={() => setIsFocused(true)}
-                    onBlur={() => setIsFocused(false)}
-                    className={`p-4 overflow-y-auto outline-none text-gray-900 dark:text-white prose dark:prose-invert max-w-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:cursor-text text-lg leading-relaxed
-                        [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 
-                        [&_li]:marker:text-gray-500 [&_li]:marker:dark:text-gray-400
-                        ${isFullScreen ? 'flex-1 h-full' : 'min-h-[500px] max-h-[800px]'
-                        }`}
-                    data-placeholder={placeholder}
-                />
+                {/* Editor Area with Table Menu */}
+                <div className="relative flex-1">
+                    {/* Floating Table Toolbar */}
+                    {/* Floating Table Toolbar */}
+                    {activeTable && (
+                        <div
+                            className="absolute z-40 bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 rounded p-1 flex gap-2 items-center transform -translate-x-1/2"
+                            style={{ top: `${tableMenuPos.top}px`, left: `${tableMenuPos.left}px` }}
+                        >
+                            <button
+                                type="button"
+                                onClick={deleteTable}
+                                className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 rounded transition-colors"
+                                title="Delete Table"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+
+                            <div className="w-px h-4 bg-gray-300 dark:bg-gray-600" />
+
+                            <div className="flex items-center rounded border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+                                <button type="button" onClick={deleteRow} className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-bold transition-colors" title="Delete Row">-</button>
+                                <span className="px-2 text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-x border-gray-200 dark:border-gray-700 py-1 select-none">Row</span>
+                                <button type="button" onClick={addRow} className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-bold transition-colors" title="Add Row">+</button>
+                            </div>
+
+                            <div className="flex items-center rounded border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+                                <button type="button" onClick={deleteCol} className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-bold transition-colors" title="Delete Column">-</button>
+                                <span className="px-2 text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-x border-gray-200 dark:border-gray-700 py-1 select-none">Col</span>
+                                <button type="button" onClick={addCol} className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-bold transition-colors" title="Add Column">+</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 
+                     Custom styles for editor content:
+                     1. Force tables to be fixed width.
+                     2. Remove outer borders of cells inside rounded wrappers to prevent broken corners.
+                    */}
+                    <style jsx global>{`
+                        .prose table { width: 100% !important; table-layout: fixed !important; }
+                        .prose .rounded-lg > table tr:first-child td { border-top: 0 !important; }
+                        .prose .rounded-lg > table tr:last-child td { border-bottom: 0 !important; }
+                        .prose .rounded-lg > table tr td:first-child { border-left: 0 !important; }
+                        .prose .rounded-lg > table tr td:last-child { border-right: 0 !important; }
+                    `}</style>
+                    <div
+                        ref={editorRef}
+                        contentEditable
+                        onInput={handleInput}
+                        onFocus={() => setIsFocused(true)}
+                        onBlur={() => setIsFocused(false)}
+                        onClick={handleEditorClick}
+                        onKeyUp={handleEditorClick} // Update menu on typing too
+                        className={`p-4 overflow-y-auto outline-none text-gray-900 dark:text-white prose dark:prose-invert max-w-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:cursor-text text-lg leading-relaxed
+                            [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6
+                            [&_li]:marker:text-gray-500 [&_li]:marker:dark:text-gray-400
+                            ${isFullScreen ? 'h-full' : 'min-h-[500px] max-h-[800px]'
+                            }`}
+                        data-placeholder={placeholder}
+                    />
+                </div>
             </div>
         </div>
     );

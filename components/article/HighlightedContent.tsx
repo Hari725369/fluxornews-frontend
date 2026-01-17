@@ -183,7 +183,18 @@ export default function HighlightedContent({ htmlContent, activeIndex, activeCha
             [&_h3]:text-gray-900 [&_h3]:dark:!text-white 
             [&_li]:text-[16px] [&_li]:text-gray-800 [&_li]:dark:!text-gray-100 
             [&_strong]:text-gray-900 [&_strong]:dark:!text-white
+            [&_strong]:text-gray-900 [&_strong]:dark:!text-white
+            [&_strong]:text-gray-900 [&_strong]:dark:!text-white
+            [&_strong]:text-gray-900 [&_strong]:dark:!text-white
             [&_*]:dark:!text-gray-100/90
+            [&_table]:w-full [&_table]:my-4 [&_table]:rounded-lg [&_table]:overflow-hidden [&_table]:table-fixed
+            [&_.rounded-lg>table]:!my-0
+            /* Remove outer borders of cells inside rounded wrapper to fix corners */
+            [&_.rounded-lg_tr:first-child_td]:border-t-0
+            [&_.rounded-lg_tr:last-child_td]:border-b-0
+            [&_.rounded-lg_tr_td:first-child]:border-l-0
+            [&_.rounded-lg_tr_td:last-child]:border-r-0
+            [&_td]:!text-[14px] [&_th]:!text-[14px] [&_td]:break-words [&_td]:px-2 [&_td]:py-2
             ${className}`}>
             {renderedContent}
         </div>
