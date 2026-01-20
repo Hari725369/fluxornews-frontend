@@ -18,6 +18,24 @@ export default function RichTextEditor({ value, onChange, label, placeholder, cl
     const [showTableModal, setShowTableModal] = useState(false);
     const [tableDims, setTableDims] = useState({ rows: 3, cols: 3 });
 
+    // Image insert modal state
+    const [showImageModal, setShowImageModal] = useState(false);
+    const [imageConfig, setImageConfig] = useState({
+        url: '',
+        width: '100%',
+        height: 'auto',
+        borderRadius: '8px'
+    });
+
+    // Column resize state
+    const [isResizing, setIsResizing] = useState(false);
+    const resizeDataRef = useRef<{
+        table: HTMLTableElement;
+        colIndex: number;
+        startX: number;
+        startWidth: number;
+    } | null>(null);
+
     const toggleFullScreen = () => {
         setIsFullScreen(!isFullScreen);
     };
@@ -76,6 +94,64 @@ export default function RichTextEditor({ value, onChange, label, placeholder, cl
         }
         editorRef.current?.focus();
     };
+
+    // Column resize handlers
+    const handleResizeMouseDown = (e: React.MouseEvent, table: HTMLTableElement, colIndex: number) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const col = table.querySelectorAll('col')[colIndex];
+        if (!col) return;
+
+        const startWidth = col.getBoundingClientRect().width;
+        resizeDataRef.current = {
+            table,
+            colIndex,
+            startX: e.clientX,
+            startWidth
+        };
+        setIsResizing(true);
+
+        // Prevent text selection during resize
+        document.body.style.userSelect = 'none';
+        document.body.style.cursor = 'col-resize';
+    };
+
+    const handleResizeMouseMove = (e: MouseEvent) => {
+        if (!isResizing || !resizeDataRef.current) return;
+
+        const { table, colIndex, startX, startWidth } = resizeDataRef.current;
+        const diff = e.clientX - startX;
+        const newWidth = Math.max(50, startWidth + diff); // Min 50px
+
+        const col = table.querySelectorAll('col')[colIndex];
+        if (col) {
+            (col as HTMLElement).style.width = `${newWidth}px`;
+        }
+    };
+
+    const handleResizeMouseUp = () => {
+        if (isResizing) {
+            setIsResizing(false);
+            resizeDataRef.current = null;
+            document.body.style.userSelect = '';
+            document.body.style.cursor = '';
+            handleInput(); // Save changes
+        }
+    };
+
+    // Attach global mouse events for resizing
+    useEffect(() => {
+        if (isResizing) {
+            window.addEventListener('mousemove', handleResizeMouseMove);
+            window.addEventListener('mouseup', handleResizeMouseUp);
+        }
+
+        return () => {
+            window.removeEventListener('mousemove', handleResizeMouseMove);
+            window.removeEventListener('mouseup', handleResizeMouseUp);
+        };
+    }, [isResizing]);
 
     const ToolbarButton = ({ cmd, arg, icon, title, onClick }: { cmd?: string, arg?: string, icon: React.ReactNode, title: string, onClick?: (e: React.MouseEvent) => void }) => (
         <button
@@ -157,7 +233,7 @@ export default function RichTextEditor({ value, onChange, label, placeholder, cl
         const row = activeTable.insertRow();
         for (let i = 0; i < cols; i++) {
             const cell = row.insertCell();
-            cell.className = "border border-gray-300 dark:border-gray-600 p-2 min-w-[50px]";
+            cell.className = "border border-gray-300 dark:border-gray-600 p-2 min-w-[50px] text-[14px]";
             cell.innerHTML = "New";
         }
         handleInput();
@@ -167,7 +243,7 @@ export default function RichTextEditor({ value, onChange, label, placeholder, cl
         if (!activeTable) return;
         for (let i = 0; i < activeTable.rows.length; i++) {
             const cell = activeTable.rows[i].insertCell();
-            cell.className = "border border-gray-300 dark:border-gray-600 p-2 min-w-[50px]";
+            cell.className = "border border-gray-300 dark:border-gray-600 p-2 min-w-[50px] text-[14px]";
             cell.innerHTML = "New";
         }
         handleInput();
@@ -196,11 +272,11 @@ export default function RichTextEditor({ value, onChange, label, placeholder, cl
     };
 
     return (
-        <div className={`${className} ${isFullScreen ? 'fixed inset-0 z-[100] bg-white dark:bg-[#0F0F0F] p-4 h-screen w-screen' : ''}`}>
+        <div className={`${className} ${isFullScreen ? 'fixed inset-0 z-[100] bg-white dark:bg-[#0F0F0F] p-4 flex flex-col' : ''}`}>
             {label && !isFullScreen && <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">{label}</label>}
 
             <div className={`border rounded-md overflow-hidden bg-white dark:bg-[#0F0F0F] transition-all flex flex-col ${isFullScreen
-                ? 'h-full border-none shadow-none'
+                ? 'flex-1 border-none shadow-none'
                 : isFocused ? 'border-primary ring-[0.5px] ring-primary' : 'border-gray-300 dark:border-neutral-300'
                 }`}>
                 {/* Toolbar */}
@@ -314,8 +390,12 @@ export default function RichTextEditor({ value, onChange, label, placeholder, cl
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                         }
                         onClick={() => {
-                            const url = prompt('Enter Image URL:', 'https://');
-                            if (url) execCommand('insertImage', url);
+                            // Save selection before opening modal
+                            const selection = window.getSelection();
+                            if (selection && selection.rangeCount > 0) {
+                                setSavedRange(selection.getRangeAt(0));
+                            }
+                            setShowImageModal(true);
                         }}
                     />
 
@@ -377,13 +457,20 @@ export default function RichTextEditor({ value, onChange, label, placeholder, cl
                                                         editorRef.current?.focus();
                                                     }
 
-                                                    // User requested: No scroll bar, row height adjusts to content (words wrap) + Corner Radius
-                                                    let html = '<div class="rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 my-4"><table class="w-full border-collapse table-fixed"><tbody>';
+                                                    // Fixed-width columns with colgroup, 14px font, resize handles
+                                                    const colWidth = `${100 / cols}%`;
+                                                    let html = '<div class="rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 my-4">';
+                                                    html += '<table class="w-full border-collapse resizable-table" style="table-layout: fixed;">';
+                                                    html += '<colgroup>';
+                                                    for (let j = 0; j < cols; j++) {
+                                                        html += `<col style="width: ${colWidth};">`;
+                                                    }
+                                                    html += '</colgroup><tbody>';
                                                     for (let i = 0; i < rows; i++) {
                                                         html += '<tr>';
                                                         for (let j = 0; j < cols; j++) {
-                                                            // Removed min-w and added break-words
-                                                            html += '<td class="border border-gray-300 dark:border-gray-600 p-2 break-words text-wrap align-top">Cell</td>';
+                                                            // 14px font, resizable cells
+                                                            html += `<td class="border border-gray-300 dark:border-gray-600 p-2 break-words text-wrap align-top text-[14px] resize-handle" data-col-index="${j}">Cell</td>`;
                                                         }
                                                         html += '</tr>';
                                                     }
@@ -393,6 +480,155 @@ export default function RichTextEditor({ value, onChange, label, placeholder, cl
                                                 }
                                             }}
                                             className="px-4 py-2 text-sm bg-primary text-white rounded hover:bg-primary-600"
+                                        >
+                                            Insert
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Image Insert Modal */}
+                    {showImageModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl w-96 max-w-full mx-4">
+                                <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">Insert Image</h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Image URL</label>
+                                        <input
+                                            type="text"
+                                            value={imageConfig.url}
+                                            onChange={(e) => setImageConfig(prev => ({ ...prev, url: e.target.value }))}
+                                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 bg-transparent dark:text-white text-sm"
+                                            placeholder="https://example.com/image.jpg"
+                                        />
+                                    </div>
+
+                                    {/* OR divider */}
+                                    <div className="relative">
+                                        <div className="absolute inset-0 flex items-center">
+                                            <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                                        </div>
+                                        <div className="relative flex justify-center text-xs">
+                                            <span className="bg-white dark:bg-gray-800 px-2 text-gray-500 dark:text-gray-400">OR</span>
+                                        </div>
+                                    </div>
+
+                                    {/* File Upload */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Upload from Computer</label>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    try {
+                                                        const formData = new FormData();
+                                                        formData.append('image', file);
+
+                                                        const token = localStorage.getItem('adminToken');
+                                                        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+                                                        const uploadUrl = `${apiUrl}/api/upload`;
+                                                        console.log('Uploading to:', uploadUrl);
+
+                                                        const response = await fetch(uploadUrl, {
+                                                            method: 'POST',
+                                                            headers: {
+                                                                'Authorization': `Bearer ${token}`
+                                                            },
+                                                            body: formData
+                                                        });
+
+                                                        const data = await response.json();
+                                                        if (data.success && data.data.url) {
+                                                            setImageConfig(prev => ({ ...prev, url: data.data.url }));
+                                                        }
+                                                    } catch (error) {
+                                                        console.error('Upload failed:', error);
+                                                        alert('Failed to upload image');
+                                                    }
+                                                }
+                                            }}
+                                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 bg-transparent dark:text-white text-sm file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-primary file:text-white file:cursor-pointer hover:file:bg-primary-600"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Width</label>
+                                            <input
+                                                type="text"
+                                                value={imageConfig.width}
+                                                onChange={(e) => setImageConfig(prev => ({ ...prev, width: e.target.value }))}
+                                                className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 bg-transparent dark:text-white text-sm"
+                                                placeholder="100%"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Height</label>
+                                            <input
+                                                type="text"
+                                                value={imageConfig.height}
+                                                onChange={(e) => setImageConfig(prev => ({ ...prev, height: e.target.value }))}
+                                                className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 bg-transparent dark:text-white text-sm"
+                                                placeholder="auto"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Corner Radius</label>
+                                        <input
+                                            type="text"
+                                            value={imageConfig.borderRadius}
+                                            onChange={(e) => setImageConfig(prev => ({ ...prev, borderRadius: e.target.value }))}
+                                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 bg-transparent dark:text-white text-sm"
+                                            placeholder="8px"
+                                        />
+                                    </div>
+                                    {imageConfig.url && (
+                                        <div className="mt-4 p-2 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Preview:</p>
+                                            <img
+                                                src={imageConfig.url}
+                                                alt="Preview"
+                                                className="max-h-40 mx-auto rounded-lg"
+                                                style={{ borderRadius: imageConfig.borderRadius, maxWidth: '100%', objectFit: 'contain' }}
+                                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                            />
+                                        </div>
+                                    )}
+                                    <div className="flex justify-end gap-2 pt-2">
+                                        <button
+                                            onClick={() => {
+                                                setShowImageModal(false);
+                                                setImageConfig({ url: '', width: '100%', height: 'auto', borderRadius: '8px' });
+                                            }}
+                                            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                if (imageConfig.url) {
+                                                    if (savedRange) {
+                                                        const selection = window.getSelection();
+                                                        if (selection) {
+                                                            selection.removeAllRanges();
+                                                            selection.addRange(savedRange);
+                                                        }
+                                                    } else {
+                                                        editorRef.current?.focus();
+                                                    }
+                                                    const html = `<img src="${imageConfig.url}" style="width: ${imageConfig.width}; height: ${imageConfig.height}; border-radius: ${imageConfig.borderRadius}; display: block; margin: 1rem auto; max-width: 100%;" alt="Article image" /><p><br/></p>`;
+                                                    execCommand('insertHTML', html);
+                                                    setShowImageModal(false);
+                                                    setImageConfig({ url: '', width: '100%', height: 'auto', borderRadius: '8px' });
+                                                }
+                                            }}
+                                            className="px-4 py-2 text-sm bg-primary text-white rounded hover:bg-primary-600 disabled:opacity-50"
+                                            disabled={!imageConfig.url}
                                         >
                                             Insert
                                         </button>
@@ -463,7 +699,7 @@ export default function RichTextEditor({ value, onChange, label, placeholder, cl
                 </div>
 
                 {/* Editor Area with Table Menu */}
-                <div className="relative flex-1">
+                <div className="relative flex-1 overflow-hidden">
                     {/* Floating Table Toolbar */}
                     {/* Floating Table Toolbar */}
                     {activeTable && (
@@ -502,11 +738,35 @@ export default function RichTextEditor({ value, onChange, label, placeholder, cl
                      2. Remove outer borders of cells inside rounded wrappers to prevent broken corners.
                     */}
                     <style jsx global>{`
-                        .prose table { width: 100% !important; table-layout: fixed !important; }
+                        .prose table { width: 100% !important; }
                         .prose .rounded-lg > table tr:first-child td { border-top: 0 !important; }
                         .prose .rounded-lg > table tr:last-child td { border-bottom: 0 !important; }
                         .prose .rounded-lg > table tr td:first-child { border-left: 0 !important; }
                         .prose .rounded-lg > table tr td:last-child { border-right: 0 !important; }
+                        
+                        /* Resize handle styles */
+                        .resize-handle {
+                            position: relative;
+                        }
+                        
+                        .resize-handle::after {
+                            content: '';
+                            position: absolute;
+                            right: 0;
+                            top: 0;
+                            width: 8px;
+                            height: 100%;
+                            cursor: col-resize;
+                            user-select: none;
+                        }
+                        
+                        .resize-handle:hover::after {
+                            background: rgba(59, 130, 246, 0.15);
+                        }
+                        
+                        .resize-handle:last-child::after {
+                            display: none; /* No resize on last column */
+                        }
                     `}</style>
                     <div
                         ref={editorRef}
@@ -516,6 +776,22 @@ export default function RichTextEditor({ value, onChange, label, placeholder, cl
                         onBlur={() => setIsFocused(false)}
                         onClick={handleEditorClick}
                         onKeyUp={handleEditorClick} // Update menu on typing too
+                        onMouseDown={(e) => {
+                            // Check if clicking on resize handle
+                            const target = e.target as HTMLElement;
+                            if (target.classList.contains('resize-handle')) {
+                                const rect = target.getBoundingClientRect();
+                                const isOnResizeArea = e.clientX >= rect.right - 8;
+
+                                if (isOnResizeArea) {
+                                    const table = target.closest('table') as HTMLTableElement;
+                                    const colIndex = parseInt(target.getAttribute('data-col-index') || '0');
+                                    if (table && colIndex !== undefined) {
+                                        handleResizeMouseDown(e, table, colIndex);
+                                    }
+                                }
+                            }
+                        }}
                         className={`p-4 overflow-y-auto outline-none text-gray-900 dark:text-white prose dark:prose-invert max-w-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:cursor-text text-lg leading-relaxed
                             [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6
                             [&_li]:marker:text-gray-500 [&_li]:marker:dark:text-gray-400

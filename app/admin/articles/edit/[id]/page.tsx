@@ -27,6 +27,7 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
 
     const [formData, setFormData] = useState({
         title: '',
+        slug: '',
         intro: '',
         content: '',
         category: '',
@@ -87,6 +88,7 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
                 // Transform data for form if needed
                 setFormData({
                     title: found.title,
+                    slug: found.slug || '',
                     intro: found.intro || '',
                     content: found.content,
                     category: (found.category && typeof found.category === 'object') ? found.category._id : (found.category || ''),
@@ -97,7 +99,7 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
                     isTrending: found.isTrending || false,
                     country: found.country || '',
                     status: found.status,
-                    showPublishDate: found.showPublishDate ?? true
+                    showPublishDate: found.showPublishDate !== undefined ? found.showPublishDate : true
                 });
             } else {
                 setError('Article not found');
@@ -134,6 +136,7 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
 
             const articlePayload = {
                 title: formData.title,
+                slug: formData.slug || undefined,
                 intro: formData.intro,
                 content: formData.content,
                 category: (formData.category === 'home' || formData.category === '') ? null : formData.category,
@@ -237,6 +240,33 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
         }
     };
 
+    const handlePreview = () => {
+        // Prepare article object with current form data
+        const previewArticle = {
+            title: formData.title || 'Untitled Article',
+            slug: formData.slug || formData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+            intro: formData.intro,
+            content: formData.content,
+            featuredImage: formData.featuredImage,
+            imageAlt: formData.imageAlt,
+            category: categories.find(c => c._id === formData.category) || null,
+            tags: formData.tags,
+            country: formData.country,
+            isTrending: formData.isTrending,
+            isFeatured: formData.isFeatured,
+            showPublishDate: formData.showPublishDate,
+            author: user || { name: 'Preview Author' },
+            publishedAt: formData.publishedAt || new Date().toISOString(),
+            views: formData.views || 0,
+        };
+
+        // Store in sessionStorage
+        sessionStorage.setItem('articlePreview', JSON.stringify(previewArticle));
+
+        // Open in new tab
+        window.open('/admin/articles/preview', '_blank');
+    };
+
     const removeTag = (tagToRemove: string) => {
         setFormData(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tagToRemove) }));
     };
@@ -267,6 +297,17 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
                                 onClick={() => router.push('/admin/articles')}
                             >
                                 Back
+                            </Button>
+                            {/* Preview Button */}
+                            <Button
+                                variant="secondary"
+                                onClick={handlePreview}
+                            >
+                                <svg className="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Preview
                             </Button>
                             {/* Save Draft Button */}
                             <Button
@@ -328,6 +369,39 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
                                 placeholder="Article title here..."
                                 required
                             />
+                        </div>
+
+                        {/* URL Slug */}
+                        <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-[#1a1a1a] p-6">
+                            <div className="flex justify-between items-center mb-2">
+                                <label htmlFor="slug" className="block text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">URL Slug (SEO)</label>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const autoSlug = formData.title
+                                            .toLowerCase()
+                                            .replace(/[^a-z0-9]+/g, '-')
+                                            .replace(/(^-|-$)/g, '');
+                                        setFormData(prev => ({ ...prev, slug: autoSlug }));
+                                    }}
+                                    className="text-xs text-primary hover:underline"
+                                >
+                                    Generate from Title
+                                </button>
+                            </div>
+                            <input
+                                type="text"
+                                name="slug"
+                                value={formData.slug}
+                                onChange={handleChange}
+                                className="w-full px-4 py-2 text-sm border border-gray-300 dark:border-neutral-200 rounded-md bg-white dark:bg-[#0F0F0F] text-black dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-primary"
+                                placeholder="my-article-slug"
+                            />
+                            {formData.slug && (
+                                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                    Preview: <span className="text-primary">https://yoursite.com/article/{formData.slug}</span>
+                                </p>
+                            )}
                         </div>
 
                         {/* Intro Paragraph */}
