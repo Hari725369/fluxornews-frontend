@@ -38,7 +38,9 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
         isTrending: false,
         country: '',
         status: 'published',
-        showPublishDate: true
+        showPublishDate: true,
+        publishedAt: '',
+        views: 0
     });
 
     // Add User State
@@ -99,7 +101,9 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
                     isTrending: found.isTrending || false,
                     country: found.country || '',
                     status: found.status,
-                    showPublishDate: found.showPublishDate !== undefined ? found.showPublishDate : true
+                    showPublishDate: found.showPublishDate !== undefined ? found.showPublishDate : true,
+                    publishedAt: found.publishedAt || '',
+                    views: found.views || 0
                 });
             } else {
                 setError('Article not found');
