@@ -23,6 +23,8 @@ export default function AdminDashboard() {
 
     const [personalStats, setPersonalStats] = useState<any>(null);
 
+    const [showGlobalStats, setShowGlobalStats] = useState(false);
+
     useEffect(() => {
         verifyAuth();
     }, []);
@@ -31,46 +33,47 @@ export default function AdminDashboard() {
         if (user) {
             fetchStats();
         }
-    }, [user, statsRange]);
+    }, [user, statsRange, showGlobalStats]);
 
     const verifyAuth = async () => {
         try {
             const response = await authAPI.getCurrentUser();
             if (response.success && response.data) {
                 setUser(response.data);
+                // Default to global stats for superadmin if they have no personal articles (optional inference)
+                // For now, let's just let them toggle it.
             } else {
-                console.warn('[AdminDashboard] Auth check failed:', response);
-                throw new Error('Auth failed');
+                authAPI.logout();
+                router.push('/admin/login');
             }
         } catch (error: any) {
-            console.error('[AdminDashboard] Verifying auth failed:', error);
-            // authAPI.logout(); // Do not verify logout immediately to allow debugging
-            // window.location.href = '/admin/login'; 
-
-            // Show error state instead of redirecting
+            if (window.location.pathname !== '/admin/login') {
+                authAPI.logout();
+                router.push('/admin/login');
+            }
             setLoading(false);
             setUser(null);
-            // We can optionally show an error UI here
-            alert(`Session check failed: ${error.message}. Please check console for details.`);
         }
     };
 
     const fetchStats = async () => {
         try {
             // Fetch global stats (for cards)
-            // Only fetch global stats once or if really needed. Keeping it here is fine.
             const globalRes = await articlesAPI.getStats();
             if (globalRes.success && globalRes.data) {
                 setStats(globalRes.data);
             }
 
-            // Fetch personal trend stats (for chart)
+            // Fetch trend stats (Personal or Global)
             if (user && user._id) {
                 const endDate = new Date();
                 const startDate = new Date();
                 startDate.setDate(startDate.getDate() - statsRange);
 
-                const trendRes = await import('@/lib/api').then(m => m.usersAPI.getUserStats(user._id, startDate, endDate));
+                const trendRes = await import('@/lib/api').then(m =>
+                    m.usersAPI.getUserStats(user._id, startDate, endDate, showGlobalStats)
+                );
+
                 if (trendRes.success && trendRes.data) {
                     setPersonalStats(trendRes.data);
                 }
@@ -88,9 +91,32 @@ export default function AdminDashboard() {
     /*
                 {personalStats && personalStats.dailyStats && (
                     <div className="mb-8">
+                         <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                                {showGlobalStats ? 'Site Performance' : 'Your Performance'}
+                            </h2>
+                            
+                            {user?.role === 'superadmin' && (
+                                <div className="flex bg-gray-100 dark:bg-zinc-800 rounded-lg p-1">
+                                    <button
+                                        onClick={() => setShowGlobalStats(false)}
+                                        className={`px-3 py-1 text-sm rounded-md transition-all ${!showGlobalStats ? 'bg-white dark:bg-zinc-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
+                                    >
+                                        My Stats
+                                    </button>
+                                    <button
+                                        onClick={() => setShowGlobalStats(true)}
+                                        className={`px-3 py-1 text-sm rounded-md transition-all ${showGlobalStats ? 'bg-white dark:bg-zinc-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
+                                    >
+                                        Global
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                        
                         <TrendChart
                             data={personalStats.dailyStats}
-                            title="Your Performance"
+                            title={showGlobalStats ? "Site Traffic Source" : "Your Content Views"}
                             subtitle={`Views over the last ${statsRange} days`}
                             onRangeChange={setStatsRange}
                         />

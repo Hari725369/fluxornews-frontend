@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, use } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Button from '@/components/ui/Button';
 import { articlesAPI, categoriesAPI, tagsAPI } from '@/lib/api';
@@ -9,16 +9,19 @@ import { Category, Article, Tag } from '@/types';
 import { Select } from '@/components/ui/Select';
 import RichTextEditor from '@/components/ui/RichTextEditor';
 import ImageUpload from '@/components/ui/ImageUpload';
+import { useConfig } from '@/contexts/ConfigContext';
+import { toast } from 'react-hot-toast';
 
-export default function EditArticlePage({ params }: { params: Promise<{ id: string }> }) {
+export default function EditArticlePage() { // Modified function signature
+    const params = useParams(); // Added
     const router = useRouter();
-    const { id } = use(params);
+    const { config } = useConfig(); // Added
+    const id = params?.id as string; // Modified id extraction
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [imageUploading, setImageUploading] = useState(false);
-    const [showSuccess, setShowSuccess] = useState(false);
     const [tagInput, setTagInput] = useState('');
     const [allTags, setAllTags] = useState<Tag[]>([]);
     const [tagSuggestions, setTagSuggestions] = useState<Tag[]>([]);
@@ -156,8 +159,9 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
 
             await articlesAPI.update(id, articlePayload);
 
-            setShowSuccess(true);
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            await articlesAPI.update(id, articlePayload);
+
+            toast.success('Article updated successfully!');
             router.push('/admin/dashboard');
 
         } catch (err: any) {
@@ -172,8 +176,9 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
         try {
             await articlesAPI.submitForReview(id as string);
             setFormData(prev => ({ ...prev, status: 'review' }));
-            setShowSuccess(true);
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            await articlesAPI.submitForReview(id as string);
+            setFormData(prev => ({ ...prev, status: 'review' }));
+            toast.success('Article submitted for review!');
             router.push('/admin/articles'); // Go back to list
         } catch (err: any) {
             setError(err.message || 'Failed to submit for review');
@@ -359,10 +364,25 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
                     <div className="lg:col-span-2 space-y-6">
                         <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-[#1a1a1a] p-6">
                             <div className="flex justify-between items-center mb-2">
-                                <label htmlFor="title" className="block text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Article Title</label>
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                    {formData.title.length === 0 ? 'Suggested: 40-70 characters' : `${formData.title.length} characters`}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    <label htmlFor="title" className="block text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Article Title</label>
+                                    <span className="text-xs text-gray-400 dark:text-gray-500 font-normal">
+                                        ({formData.title.length} chars)
+                                    </span>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const siteName = config?.siteIdentity?.siteName || 'Fluxor News';
+                                        const suffix = ` | ${siteName}`;
+                                        if (!formData.title.endsWith(suffix)) {
+                                            setFormData(prev => ({ ...prev, title: prev.title.trim() + suffix }));
+                                        }
+                                    }}
+                                    className="text-xs text-primary hover:underline font-medium"
+                                >
+                                    + Add Site Name
+                                </button>
                             </div>
                             <input
                                 type="text"
@@ -612,15 +632,6 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
                 </div>
 
                 {/* Success Overlay */}
-                {showSuccess && (
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-                        <div className="bg-white dark:bg-[#1A1A1A] rounded-xl p-8 shadow-2xl flex flex-col items-center border dark:border-[#1a1a1a]">
-                            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 text-green-600">✓</div>
-                            <h2 className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)] mb-2">Saved!</h2>
-                            <p className="text-gray-500 dark:text-[var(--text-secondary)]">Article updated successfully.</p>
-                        </div>
-                    </div>
-                )}
             </main>
         </div>
     );

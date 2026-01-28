@@ -207,6 +207,9 @@ export const authAPI = {
     },
 
     getCurrentUser: async (): Promise<ApiResponse<any>> => {
+        if (!getToken()) {
+            return { success: false, message: 'No token' };
+        }
         return fetchAPI('/auth/me');
     },
 
@@ -364,11 +367,12 @@ export const usersAPI = {
         return fetchAPI('/users');
     },
 
-    getUserStats: async (userId: string, startDate?: Date, endDate?: Date): Promise<ApiResponse<any>> => {
+    getUserStats: async (userId: string, startDate?: Date, endDate?: Date, isGlobal: boolean = false): Promise<ApiResponse<any>> => {
         let url = `/users/${userId}/stats`;
         const params = new URLSearchParams();
         if (startDate) params.append('startDate', startDate.toISOString());
         if (endDate) params.append('endDate', endDate.toISOString());
+        if (isGlobal) params.append('global', 'true');
 
         const queryString = params.toString();
         if (queryString) {

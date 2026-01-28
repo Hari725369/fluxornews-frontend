@@ -145,6 +145,11 @@ export interface SiteConfig {
     homeLayout?: {
         columns: number;
     };
+    siteIdentity?: {
+        siteName: string;
+        siteDescription: string;
+        siteKeywords: string;
+    };
     branding?: {
         logo: string;
         favicon: string;

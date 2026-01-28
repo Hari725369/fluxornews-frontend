@@ -50,6 +50,8 @@ export default function HomepageManager() {
                 setUser(response.data);
                 fetchConfigAndCategories();
                 searchArticles('');
+            } else {
+                router.push('/admin/login');
             }
         } catch (error) {
             router.push('/admin/login');

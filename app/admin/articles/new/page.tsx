@@ -9,9 +9,12 @@ import { Category, Tag } from '@/types';
 import { Select } from '@/components/ui/Select';
 import RichTextEditor from '@/components/ui/RichTextEditor';
 import ImageUpload from '@/components/ui/ImageUpload';
+import { useConfig } from '@/contexts/ConfigContext';
+import { toast } from 'react-hot-toast';
 
 export default function NewArticlePage() {
     const router = useRouter();
+    const { config } = useConfig();
     const [user, setUser] = useState<any>(null);
     const [categories, setCategories] = useState<Category[]>([]);
     const [formData, setFormData] = useState({
@@ -34,7 +37,6 @@ export default function NewArticlePage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [imageUploading, setImageUploading] = useState(false);
-    const [showSuccess, setShowSuccess] = useState(false);
     const [tagInput, setTagInput] = useState('');
     const [allTags, setAllTags] = useState<Tag[]>([]);
     const [tagSuggestions, setTagSuggestions] = useState<Tag[]>([]);
@@ -112,8 +114,9 @@ export default function NewArticlePage() {
 
             await articlesAPI.create(articlePayload as any);
 
-            setShowSuccess(true);
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            await articlesAPI.create(articlePayload as any);
+
+            toast.success('Article created successfully!');
             router.push('/admin/dashboard');
 
         } catch (err: any) {
@@ -286,10 +289,25 @@ export default function NewArticlePage() {
                     <div className="lg:col-span-2 space-y-6">
                         <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-[#1a1a1a] p-6">
                             <div className="flex justify-between items-center mb-2">
-                                <label htmlFor="title" className="block text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-[var(--text-secondary)]">Article Title</label>
-                                <span className="text-xs text-gray-500 dark:text-[var(--text-secondary)]">
-                                    {formData.title.length === 0 ? 'Suggested: 40-70 characters' : `${formData.title.length} characters`}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    <label htmlFor="title" className="block text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-[var(--text-secondary)]">Article Title</label>
+                                    <span className="text-xs text-gray-400 dark:text-gray-500 font-normal">
+                                        ({formData.title.length} chars)
+                                    </span>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const siteName = config?.siteIdentity?.siteName || 'Fluxor News';
+                                        const suffix = ` | ${siteName}`;
+                                        if (!formData.title.endsWith(suffix)) {
+                                            setFormData(prev => ({ ...prev, title: prev.title.trim() + suffix }));
+                                        }
+                                    }}
+                                    className="text-xs text-primary hover:underline font-medium"
+                                >
+                                    + Add Site Name
+                                </button>
                             </div>
                             <input
                                 type="text"
@@ -535,18 +553,7 @@ export default function NewArticlePage() {
                 </form >
 
                 {/* Success Overlay */}
-                {
-                    showSuccess && (
-                        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-                            <div className="bg-white dark:bg-[#1A1A1A] rounded-xl p-8 shadow-2xl flex flex-col items-center border dark:border-[#1a1a1a]">
-                                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 text-green-600">✓</div>
-                                <h2 className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)] mb-2">Saved!</h2>
-                                <p className="text-gray-500 dark:text-[var(--text-secondary)]">Article created successfully.</p>
-                            </div>
-                        </div>
-                    )
-                }
-            </main >
-        </div >
+            </main>
+        </div>
     );
 }

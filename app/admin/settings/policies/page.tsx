@@ -21,6 +21,8 @@ export default function PoliciesPage() {
                     router.push('/admin/dashboard');
                 }
                 setUser(response.data);
+            } else {
+                router.push('/admin/login');
             }
         } catch (error) {
             router.push('/admin/login');

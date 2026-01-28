@@ -29,6 +29,8 @@ export default function CookiePolicyEditor() {
                 if (response.data.role !== 'superadmin') {
                     router.push('/admin/dashboard');
                 }
+            } else {
+                router.push('/admin/login');
             }
         } catch (error) {
             router.push('/admin/login');

@@ -25,8 +25,12 @@ export default function PrivacyPolicyEditor() {
     const verifyAuth = async () => {
         try {
             const response = await authAPI.getCurrentUser();
-            if (response.success && response.data?.role !== 'superadmin') {
-                router.push('/admin/dashboard');
+            if (response.success) {
+                if (response.data?.role !== 'superadmin') {
+                    router.push('/admin/dashboard');
+                }
+            } else {
+                router.push('/admin/login');
             }
         } catch (error) {
             router.push('/admin/login');

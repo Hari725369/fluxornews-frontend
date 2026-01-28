@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { configAPI } from '@/lib/api';
-import { GoogleOAuthProvider } from '@react-oauth/google';
+
 
 export interface SiteFeatures {
     enableEmailSubscribe: boolean;
@@ -24,6 +24,11 @@ export interface SiteFeatures {
 export interface SiteConfig {
     homeLayout: {
         columns: number;
+    };
+    siteIdentity?: {
+        siteName: string;
+        siteDescription: string;
+        siteKeywords: string;
     };
     branding: {
         logo: string;
@@ -114,11 +119,9 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     }, []);
 
     return (
-        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''}>
-            <ConfigContext.Provider value={{ config, loading, refreshConfig: fetchConfig }}>
-                {children}
-            </ConfigContext.Provider>
-        </GoogleOAuthProvider>
+        <ConfigContext.Provider value={{ config, loading, refreshConfig: fetchConfig }}>
+            {children}
+        </ConfigContext.Provider>
     );
 }
 

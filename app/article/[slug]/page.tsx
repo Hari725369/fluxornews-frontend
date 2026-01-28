@@ -17,18 +17,39 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     if (!article) return { title: 'Article Not Found' };
 
+    // Fetch site config for dynamic branding
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+    let siteName = 'Fluxor News';
+    try {
+        const configRes = await fetch(`${API_URL}/config`, { next: { revalidate: 3600 } });
+        const configData = await configRes.json();
+        if (configData?.data?.siteIdentity?.siteName) {
+            siteName = configData.data.siteIdentity.siteName;
+        }
+    } catch (e) {
+        console.error('Failed to load site config for metadata');
+    }
+
+    // Smart Title: Don't double-append if already present
+    const cleanTitle = article.title.trim();
+    const finalTitle = cleanTitle.endsWith(`| ${siteName}`)
+        ? cleanTitle
+        : `${cleanTitle} | ${siteName}`;
+
     return {
-        title: `${article.title} | Global News`,
+        title: finalTitle,
         description: article.content.replace(/<[^>]*>/g, '').substring(0, 160),
+        keywords: article.tags || [],
         openGraph: {
-            title: article.title,
+            title: finalTitle,
             description: article.content.replace(/<[^>]*>/g, '').substring(0, 160),
             images: [article.featuredImage || ''],
             type: 'article',
+            siteName: siteName,
         },
         twitter: {
             card: 'summary_large_image',
-            title: article.title,
+            title: finalTitle,
             description: article.content.replace(/<[^>]*>/g, '').substring(0, 160),
             images: [article.featuredImage || ''],
         },
